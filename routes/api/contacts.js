@@ -74,7 +74,7 @@ router.put('/:id', async (req, res, next) => {
       throw new CreateError(400, error.message)
     }
     const { id } = req.params
-    const result = await Contact.findByIdAndUpdate(id, req.body, {new: true})
+    const result = await Contact.findByIdAndUpdate(id, req.body, {new: true, runValidators: true})
     if (!result) {
       throw new CreateError(404, 'Not found')
     }
@@ -94,7 +94,7 @@ router.patch('/:id/favorite', async (req, res, next) => {
       throw new CreateError(400, {message: "missing field favorite"})
     }
     const { id } = req.params
-    const result = await Contact.findByIdAndUpdate(id, req.body, {new: true})
+    const result = await Contact.findByIdAndUpdate(id, req.body, {new: true, runValidators: true})
     if (!result) {
       throw new CreateError(404, 'Not found')
     }
