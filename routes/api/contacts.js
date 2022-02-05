@@ -1,23 +1,17 @@
 const express = require('express')
 const router = express.Router()
 const CreateError = require('http-errors')
-const Joi = require('joi')
 
-const contactsSchema = Joi.object({
-  name: Joi.string().required(),
-  email: Joi.string().required(),
-  phone: Joi.string().required()
-  })
+const { Contact, contactsJoiSchema, favoriteJoiSchema } = require('../../models/contacts')
+const {authenticate} = require('../../middlewares')
 
-const updateFavorite = Joi.object({
-  favorite:Joi.boolean().required()
-})
 
-const Contact = require('../../models/contacts')
-
-router.get('/', async (req, res, next) => {
+router.get('/', authenticate, async (req, res, next) => {
   try {
-    const result = await Contact.find({},"-createdAt -updatedAt")
+    const { page = 1, limit = 20, favorite = true } = req.query
+    const skip = (page - 1) * limit
+    const {_id} = req.user
+    const result = await Contact.find({owner: _id, favorite},"-createdAt -updatedAt", {skip, limit: +limit}).populate('owner', 'email')
   res.json( result )
   } catch (error) {
     next(error)
@@ -40,14 +34,14 @@ router.get('/:id', async (req, res, next) => {
   }
 })
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticate, async (req, res, next) => {
   try {
-    const {error} = contactsSchema.validate(req.body)
+    const {error} = contactsJoiSchema.validate(req.body)
     if (error) {
       throw new CreateError(400, error.message)
     }
-    // const  {name, email, phone} = req.body
-    const result = await Contact.create(req.body)
+    const data = {...req.body, owner: req.user._id}
+    const result = await Contact.create(data)
    res.status(201).json(result)
  } catch (error) {
    next(error)
@@ -69,7 +63,7 @@ router.delete('/:id', async (req, res, next) => {
 
 router.put('/:id', async (req, res, next) => {
   try {
-    const {error} = contactsSchema.validate(req.body)
+    const {error} = contactsJoiSchema.validate(req.body)
     if (error) {
       throw new CreateError(400, error.message)
     }
@@ -89,7 +83,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.patch('/:id/favorite', async (req, res, next) => {
   try {
-    const {error} = updateFavorite.validate(req.body)
+    const {error} = favoriteJoiSchema.validate(req.body)
     if (error) {
       throw new CreateError(400, {message: "missing field favorite"})
     }
